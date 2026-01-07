@@ -201,6 +201,7 @@ def api_carros():
         SELECT
             Id,
             id_icbs,
+            id_station,
             name,
             lon,
             lat,
@@ -222,6 +223,7 @@ def api_carros():
             data.append({
                 "id": int(r.Id),
                 "id_icbs": r.id_icbs,
+                "id_station": r.id_station,
                 "nombre": r.name,
                 "color": obtener_color(r.in_service, r.available, r.failure),
                 "lat": float(r.lat) if r.lat is not None else None,

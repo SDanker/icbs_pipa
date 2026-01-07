@@ -17,7 +17,7 @@ ubicaciones, junto con paneles de resumen por tipo y distribución por cuartel.
 
 - **/api/carros:** consulta la base de datos para obtener estado, ubicación y
   conductor.
-- **/data/cuarteles.json:** asigna cada carro a su cuartel usando `id_icbs` para
+- **/data/cuarteles.json:** asigna cada carro a su cuartel usando `id_station` para
   la vista por cuartel.
 
 ## Navegación rápida

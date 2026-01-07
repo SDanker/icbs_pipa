@@ -99,8 +99,8 @@ function esOtroCuerpo(nombre){
 function parseCuarteles(data){
   const map = {};
   data.forEach(item => {
-    if (!item || !item.id_icbs || item.cuartel === undefined) return;
-    map[String(item.id_icbs).trim()] = String(item.cuartel).trim();
+    if (!item || item.id_station === undefined || item.cuartel === undefined) return;
+    map[String(item.id_station).trim()] = String(item.cuartel).trim();
   });
   return map;
 }
@@ -141,7 +141,7 @@ async function cargar(){
   carros
     .filter(v => !esOtroCuerpo(v.nombre))
     .forEach(v=>{
-      const c = mapaCuarteles[v.id_icbs];
+      const c = mapaCuarteles[v.id_station];
       if(!c || !cols[c]) return;
       cols[c].push(v);
     });
