@@ -6,45 +6,26 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
-body{
-  font-family:system-ui,Arial;
-  margin:16px;
-  background:#f5f6fa;
-}
-
-.nav{
-  display:flex;
-  gap:10px;
-  margin-bottom:16px;
-}
-.nav button{
-  padding:8px 14px;
-  border:none;
-  border-radius:8px;
-  cursor:pointer;
-  font-weight:600;
-}
+body{font-family:system-ui,Arial;margin:16px;}
+.nav{display:flex;gap:10px;margin-bottom:16px;}
+.nav button{padding:8px 14px;border:none;border-radius:8px;cursor:pointer;font-weight:600;}
 .btn-home{background:#34495e;color:#fff;}
 .btn-dashboard{background:#27ae60;color:#fff;}
+.btn-switch{background:#8e44ad;color:#fff;}
+.btn-resumen{background:#f39c12;color:#fff;}
 
 h2{margin-bottom:12px;}
 
-.legend{
-  display:flex;
-  gap:12px;
-  margin-bottom:16px;
-  font-weight:700;
-}
-.legend span{
-  display:flex;
-  align-items:center;
-  gap:6px;
-}
-
-.green{color:#2ecc71;}
-.blue{color:#3498db;}
-.yellow{color:#f1c40f;}
-.red{color:#e74c3c;}
+.legend{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:16px;font-size:14px;}
+.legend-item{display:flex;align-items:center;gap:6px;}
+.legend-color{width:14px;height:14px;border-radius:4px;}
+.green{background:#2ecc71}
+.yellow{background:#f1c40f;color:#000}
+.blue{background:#3498db}
+.red{background:#e74c3c}
+.status{margin:8px 0 16px;font-weight:600;}
+.status.ok{color:#27ae60;}
+.status.error{color:#c0392b;}
 
 .grid{
   display:grid;
@@ -85,17 +66,21 @@ h2{margin-bottom:12px;}
 <div class="nav">
   <button class="btn-home" onclick="location.href='/'">🏠 Service</button>
   <button class="btn-dashboard" onclick="location.href='/dashboard'">🚒 Dashboard</button>
+  <button class="btn-switch" onclick="location.href='/otros-cuerpos'">🚑 Otros Cuerpos</button>
+  <button class="btn-resumen" onclick="location.href='/dashboard/resumen'">Resumen</button>
 </div>
 
 <h2>🚒 Carros por Cuartel</h2>
 
 <!-- LEYENDA -->
 <div class="legend">
-  <span class="green">🟢 En servicio</span>
-  <span class="blue">🔵 En llamado</span>
-  <span class="yellow">🟡 Disponible</span>
-  <span class="red">🔴 Fuera de servicio</span>
+  <div class="legend-item"><div class="legend-color green"></div> En servicio</div>
+  <div class="legend-item"><div class="legend-color blue"></div> En llamado</div>
+  <div class="legend-item"><div class="legend-color yellow"></div> Disponible</div>
+  <div class="legend-item"><div class="legend-color red"></div> Fuera de servicio</div>
 </div>
+
+<div id="status" class="status">⏳ Cargando datos...</div>
 
 <div id="grid" class="grid"></div>
 
@@ -110,26 +95,42 @@ function esOtroCuerpo(nombre){
   return p.length > 1 && OTROS_CUERPOS.includes(p[p.length-1]);
 }
 
-/* ================= CSV ================= */
-function parseCSV(text){
-  const lines = text.trim().split("\n").slice(1);
+/* ================= JSON ================= */
+function parseCuarteles(data){
   const map = {};
-  lines.forEach(l=>{
-    const [carro, cuartel] = l.split(",");
-    map[carro.trim()] = cuartel.trim();
+  data.forEach(item => {
+    if (!item || !item.id_icbs || item.cuartel === undefined) return;
+    map[String(item.id_icbs).trim()] = String(item.cuartel).trim();
   });
   return map;
 }
 
 /* ================= MAIN ================= */
 async function cargar(){
-  const [carros, csv] = await Promise.all([
-    fetch("/api/carros").then(r=>r.json()),
-    fetch("/data/cuarteles.csv").then(r=>r.text())
+  const status = document.getElementById("status");
+  try{
+    const [carrosResp, cuartelesResp] = await Promise.all([
+      fetch("/api/carros"),
+      fetch("/data/cuarteles.json")
+    ]);
 
-  ]);
+    if(!carrosResp.ok){
+      throw new Error("No se pudo cargar /api/carros");
+    }
+    if(!cuartelesResp.ok){
+      throw new Error("No se pudo cargar /data/cuarteles.json");
+    }
 
-  const mapaCuarteles = parseCSV(csv);
+    const [carros, cuarteles] = await Promise.all([
+      carrosResp.json(),
+      cuartelesResp.json()
+    ]);
+
+    const mapaCuarteles = parseCuarteles(cuarteles);
+    const count = Object.keys(mapaCuarteles).length;
+    if(count === 0){
+      throw new Error("JSON vacío o sin registros");
+    }
 
   // Inicializar columnas
   const cols = {};
@@ -140,12 +141,19 @@ async function cargar(){
   carros
     .filter(v => !esOtroCuerpo(v.nombre))
     .forEach(v=>{
-      const c = mapaCuarteles[v.nombre];
+      const c = mapaCuarteles[v.id_icbs];
       if(!c || !cols[c]) return;
       cols[c].push(v);
     });
 
-  render(cols);
+    render(cols);
+    status.className = "status ok";
+    status.innerText = `✅ JSON leído: ${count} asignaciones`;
+  }catch(error){
+    console.error("Error cargando datos:", error);
+    status.className = "status error";
+    status.innerText = `⚠️ Error cargando datos: ${error.message}`;
+  }
 }
 
 /* ================= RENDER ================= */
@@ -156,7 +164,8 @@ function render(cols){
   for(let i=1;i<=TOTAL_CUARTEL;i++){
     const col = document.createElement("div");
     col.className = "col";
-    col.innerHTML = `<h3>Cuartel ${i}</h3>`;
+    const titulo = i === 23 ? "Comandancia" : `Cuartel ${i}`;
+    col.innerHTML = `<h3>${titulo}</h3>`;
 
     cols[i].forEach(v=>{
       const d = document.createElement("div");
