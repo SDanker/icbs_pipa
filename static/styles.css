@@ -1,0 +1,185 @@
+:root{
+  --panelW: 520px;
+  --topbarH: 90px;
+}
+
+html, body { height: 100%; margin: 0; font-family: system-ui, Arial; }
+
+.topbar {
+  padding: 10px 12px;
+  border-bottom: 1px solid #ddd;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.title { font-weight: 700; margin-top: 6px; }
+
+.controls { display: flex; gap: 12px; align-items: end; flex-wrap: wrap; }
+label { display: flex; flex-direction: column; font-size: 12px; gap: 4px; }
+
+label.inline { flex-direction: row; align-items: center; gap: 6px; margin-top: 18px; }
+
+.btnRow{
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 18px;
+}
+
+button { height: 32px; padding: 0 10px; }
+button.primary { font-weight: 600; }
+
+.hint{ font-size: 12px; color: #444; margin-top: 10px; max-width: 360px; }
+
+main.layout{
+  display: flex;
+  height: calc(100vh - var(--topbarH));
+}
+
+#mapWrap{
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+#map{
+  height: 100%;
+  width: 100%;
+}
+
+.status{
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  z-index: 999;
+  background: rgba(255,255,255,0.92);
+  padding: 8px 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+/* Panel (desktop) */
+.panel{
+  width: var(--panelW);
+  max-width: 48vw;
+  border-left: 1px solid #ddd;
+  padding: 10px 12px;
+  overflow: auto;
+  background: #fff;
+}
+
+.panelHeader{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.panel-title{ font-weight: 700; }
+.panel-subtitle{ font-size: 12px; color: #444; margin: 10px 0; }
+
+.closeBtn{
+  border: 1px solid #ddd;
+  background: #fff;
+  border-radius: 8px;
+  height: 32px;
+  width: 36px;
+  padding: 0;
+  cursor: pointer;
+}
+
+/* tabla */
+.tableWrap{
+  max-height: calc(100vh - 190px);
+  overflow: auto;
+  border: 1px solid #eee;
+  border-radius: 8px;
+}
+#trackTable{
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+#trackTable th, #trackTable td{
+  padding: 6px 8px;
+  border-bottom: 1px solid #f0f0f0;
+  white-space: nowrap;
+}
+#trackTable thead th{
+  position: sticky;
+  top: 0;
+  background: #fafafa;
+  border-bottom: 1px solid #e6e6e6;
+}
+#trackTable tbody tr:hover{
+  background: #fcfcfc;
+  cursor: pointer;
+}
+
+/* Ocultar/mostrar panel (desktop) */
+body.panel-hidden .panel{
+  display: none;
+}
+body.panel-hidden main.layout{
+  /* mapa ocupa todo */
+}
+
+/* Overlay (móvil) */
+.overlay{
+  display: none;
+}
+
+/* =========================
+   RESPONSIVE (móvil)
+   ========================= */
+@media (max-width: 900px){
+  :root{ --topbarH: 140px; }
+
+  /* controles más compactos */
+  #vehicleSelect{ width: 220px; }
+  .hint{ display: none; }
+
+  main.layout{
+    display: block;
+    height: calc(100vh - var(--topbarH));
+  }
+
+  /* panel como drawer */
+  .panel{
+    position: absolute;
+    top: var(--topbarH);
+    right: 0;
+    height: calc(100vh - var(--topbarH));
+    width: min(92vw, 520px);
+    max-width: none;
+    border-left: 1px solid #ddd;
+    box-shadow: -8px 0 24px rgba(0,0,0,0.12);
+    transform: translateX(100%);
+    transition: transform 200ms ease;
+    z-index: 1001;
+  }
+
+  body.panel-open .panel{
+    transform: translateX(0);
+  }
+
+  /* overlay cuando panel abierto */
+  .overlay{
+    display: none;
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.25);
+    z-index: 1000;
+  }
+  body.panel-open .overlay{
+    display: block;
+  }
+
+  /* en móvil: por defecto oculto */
+  body.panel-hidden .panel{
+    display: block; /* existe, pero oculto por translateX */
+  }
+}

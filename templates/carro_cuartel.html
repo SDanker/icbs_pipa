@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Carros por Cuartel</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+body{
+  font-family:system-ui,Arial;
+  margin:16px;
+  background:#f5f6fa;
+}
+
+.nav{
+  display:flex;
+  gap:10px;
+  margin-bottom:16px;
+}
+.nav button{
+  padding:8px 14px;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+  font-weight:600;
+}
+.btn-home{background:#34495e;color:#fff;}
+.btn-dashboard{background:#27ae60;color:#fff;}
+
+h2{margin-bottom:12px;}
+
+.legend{
+  display:flex;
+  gap:12px;
+  margin-bottom:16px;
+  font-weight:700;
+}
+.legend span{
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+
+.green{color:#2ecc71;}
+.blue{color:#3498db;}
+.yellow{color:#f1c40f;}
+.red{color:#e74c3c;}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(23, minmax(140px,1fr));
+  gap:10px;
+  overflow-x:auto;
+}
+
+.col{
+  background:#ecf0f1;
+  border-radius:12px;
+  padding:8px;
+}
+
+.col h3{
+  text-align:center;
+  margin:6px 0 10px;
+}
+
+.item{
+  padding:6px;
+  margin-bottom:6px;
+  border-radius:8px;
+  font-weight:700;
+  text-align:center;
+}
+
+.item.green{background:#2ecc71;color:#fff;}
+.item.blue{background:#3498db;color:#fff;}
+.item.yellow{background:#f1c40f;color:#000;}
+.item.red{background:#e74c3c;color:#fff;}
+</style>
+</head>
+
+<body>
+
+<!-- NAV -->
+<div class="nav">
+  <button class="btn-home" onclick="location.href='/'">🏠 Service</button>
+  <button class="btn-dashboard" onclick="location.href='/dashboard'">🚒 Dashboard</button>
+</div>
+
+<h2>🚒 Carros por Cuartel</h2>
+
+<!-- LEYENDA -->
+<div class="legend">
+  <span class="green">🟢 En servicio</span>
+  <span class="blue">🔵 En llamado</span>
+  <span class="yellow">🟡 Disponible</span>
+  <span class="red">🔴 Fuera de servicio</span>
+</div>
+
+<div id="grid" class="grid"></div>
+
+<script>
+/* ================= CONFIG ================= */
+const OTROS_CUERPOS = ["Ñ","QN","CB","BOM","RX"];
+const TOTAL_CUARTEL = 23;
+
+/* ================= UTILS ================= */
+function esOtroCuerpo(nombre){
+  const p = nombre.trim().split(" ");
+  return p.length > 1 && OTROS_CUERPOS.includes(p[p.length-1]);
+}
+
+/* ================= CSV ================= */
+function parseCSV(text){
+  const lines = text.trim().split("\n").slice(1);
+  const map = {};
+  lines.forEach(l=>{
+    const [carro, cuartel] = l.split(",");
+    map[carro.trim()] = cuartel.trim();
+  });
+  return map;
+}
+
+/* ================= MAIN ================= */
+async function cargar(){
+  const [carros, csv] = await Promise.all([
+    fetch("/api/carros").then(r=>r.json()),
+    fetch("/data/cuarteles.csv").then(r=>r.text())
+
+  ]);
+
+  const mapaCuarteles = parseCSV(csv);
+
+  // Inicializar columnas
+  const cols = {};
+  for(let i=1;i<=TOTAL_CUARTEL;i++){
+    cols[i] = [];
+  }
+
+  carros
+    .filter(v => !esOtroCuerpo(v.nombre))
+    .forEach(v=>{
+      const c = mapaCuarteles[v.nombre];
+      if(!c || !cols[c]) return;
+      cols[c].push(v);
+    });
+
+  render(cols);
+}
+
+/* ================= RENDER ================= */
+function render(cols){
+  const grid = document.getElementById("grid");
+  grid.innerHTML = "";
+
+  for(let i=1;i<=TOTAL_CUARTEL;i++){
+    const col = document.createElement("div");
+    col.className = "col";
+    col.innerHTML = `<h3>Cuartel ${i}</h3>`;
+
+    cols[i].forEach(v=>{
+      const d = document.createElement("div");
+      d.className = "item " + v.color;
+      d.innerText = v.nombre;
+      col.appendChild(d);
+    });
+
+    grid.appendChild(col);
+  }
+}
+
+cargar();
+</script>
+
+</body>
+</html>

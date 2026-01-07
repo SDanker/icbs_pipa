@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Dashboard Principal</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+<style>
+body{font-family:system-ui,Arial;margin:16px;}
+.nav{display:flex;gap:10px;margin-bottom:16px;}
+.nav button{padding:8px 14px;border:none;border-radius:8px;cursor:pointer;font-weight:600;}
+.btn-home{background:#34495e;color:#fff;}
+.btn-switch{background:#8e44ad;color:#fff;}
+.btn-cuartel{background:#3498db;color:#fff;}
+
+
+.legend{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:16px;font-size:14px;}
+.legend-item{display:flex;align-items:center;gap:6px;}
+.legend-color{width:14px;height:14px;border-radius:4px;}
+
+.columns{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;}
+.column{background:#f4f6f8;border-radius:12px;padding:10px;}
+.column h3{text-align:center;margin:8px 0 12px;}
+
+.card{padding:14px;border-radius:10px;color:#fff;font-weight:700;text-align:center;cursor:pointer;margin-bottom:10px;}
+.green{background:#2ecc71}
+.yellow{background:#f1c40f;color:#000}
+.blue{background:#3498db}
+.red{background:#e74c3c}
+.gray{background:#7f8c8d}
+
+/* ===== RESUMEN ===== */
+.resumen{
+  display:flex;
+  flex-wrap:wrap;
+  gap:12px;
+  margin-bottom:16px;
+}
+.resumen-item{
+  background:#ecf0f1;
+  border-radius:10px;
+  padding:10px 14px;
+  font-weight:700;
+}
+.resumen-item span{
+  color:#27ae60;
+}
+
+/* ===== MODAL ===== */
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;}
+.modal-content{background:#fff;width:90%;max-width:420px;margin:10% auto;border-radius:12px;padding:16px;}
+.modal-header{display:flex;justify-content:space-between;align-items:center;}
+.close{cursor:pointer;font-size:22px;}
+#map{height:200px;margin-top:10px;border-radius:10px;}
+</style>
+</head>
+
+<body>
+
+<!-- NAV -->
+<div class="nav">
+  <button class="btn-home" onclick="location.href='/'">🏠 Service</button>
+  <button class="btn-switch" onclick="location.href='/otros-cuerpos'">🚑 Otros Cuerpos</button>
+  <button class="btn-cuartel" onclick="location.href='/dashboard/cuartel'">🏢 Cuarteles</button>
+  <button class="btn-resumen" onclick="location.href='/dashboard/resumen'">Resumen</button>
+</div>
+
+<h2>🚒 Dashboard Principal</h2>
+
+<!-- 🔹 RESUMEN SUPERIOR -->
+<div id="resumen" class="resumen"></div>
+
+<!-- LEYENDA -->
+<div class="legend">
+  <div class="legend-item"><div class="legend-color green"></div> En servicio</div>
+  <div class="legend-item"><div class="legend-color blue"></div> En llamado</div>
+  <div class="legend-item"><div class="legend-color yellow"></div> Disponible</div>
+  <div class="legend-item"><div class="legend-color red"></div> Fuera de servicio</div>
+</div>
+
+<div class="columns" id="columns"></div>
+
+<!-- MODAL -->
+<div class="modal" id="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="modal-title"></h3>
+      <span class="close" onclick="cerrarModal()">✕</span>
+    </div>
+    <p id="modal-conductor"></p>
+    <div id="map"></div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+const OTROS_CUERPOS = ["Ñ","QN","CB","BOM","RX"];
+
+const ORDEN_ESTADOS = {
+  blue: 1,
+  green: 2,
+  yellow: 3,
+  red: 4,
+  gray: 5
+};
+
+const grupos = {
+  B:{titulo:"🚒 Bomba",items:[]},
+  Q:{titulo:"🪜 Porta Escala",items:[]},
+  R:{titulo:"🚑 Rescate",items:[]},
+  M:{titulo:"🔧 Mecánica",items:[]},
+  Z:{titulo:"🚛 Cisterna",items:[]},
+  H:{titulo:"☢️ Haz-Mat",items:[]},
+  KX:{titulo:"🧭 Comandancia",items:[]},
+  O:{titulo:"📦 Otros",items:[]}
+};
+
+let map;
+
+function obtenerCodigoFinal(nombre){
+  const p = nombre.trim().split(" ");
+  return p.length > 1 ? p[p.length-1] : null;
+}
+function esOtroCuerpo(nombre){
+  const c = obtenerCodigoFinal(nombre);
+  return c && OTROS_CUERPOS.includes(c);
+}
+function grupoPorNombre(nombre){
+  const n = nombre.trim().toUpperCase();
+
+  if (n.startsWith("ST")) return "Z";
+  if (n.startsWith("UD") || n.startsWith("UV") || n.startsWith("RM")) return "O";
+
+  if (n.startsWith("B")) return "B";
+  if (n.startsWith("Q")) return "Q";
+  if (n.startsWith("R")) return "R";
+  if (n.startsWith("M") || n.startsWith("MX")) return "M";
+  if (n.startsWith("Z")) return "Z";
+  if (n.startsWith("H")) return "H";
+  if (n.startsWith("K") || n.startsWith("X") || n.startsWith("S")) return "KX";
+
+  return "O";
+}
+
+/* ===== RESUMEN ===== */
+function renderResumen(){
+  const cont = document.getElementById("resumen");
+  cont.innerHTML = "";
+
+  for(const k in grupos){
+
+    // ❌ EXCLUIR COMANDANCIA Y OTROS
+    if (k === "KX" || k === "O") continue;
+
+    const total = grupos[k].items.filter(v => v.color === "green").length;
+    if(total === 0) continue;
+
+    const d = document.createElement("div");
+    d.className = "resumen-item";
+    d.innerHTML = `${grupos[k].titulo}: <span>${total}</span>`;
+    cont.appendChild(d);
+  }
+}
+
+
+/* ===== RENDER ===== */
+function render(){
+  const cont = document.getElementById("columns");
+  cont.innerHTML = "";
+
+  for(const k in grupos){
+    const col = document.createElement("div");
+    col.className = "column";
+    col.innerHTML = `<h3>${grupos[k].titulo}</h3>`;
+
+    grupos[k].items
+      .sort((a,b)=>(ORDEN_ESTADOS[a.color]||99)-(ORDEN_ESTADOS[b.color]||99))
+      .forEach(v=>{
+        const d = document.createElement("div");
+        d.className = "card " + v.color;
+        d.innerText = v.nombre;
+        d.onclick = ()=>abrirModal(v);
+        col.appendChild(d);
+      });
+
+    cont.appendChild(col);
+  }
+}
+
+/* ===== MODAL ===== */
+function abrirModal(v){
+  document.getElementById("modal-title").innerText = v.nombre;
+  document.getElementById("modal-conductor").innerText =
+    v.conductor ? "👤 "+v.conductor : "👤 Sin conductor";
+
+  document.getElementById("modal").style.display="block";
+
+  setTimeout(()=>{
+    if(map) map.remove();
+    map = L.map("map").setView([v.lat||0,v.lng||0], v.lat&&v.lng ? 14 : 2);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+    if(v.lat && v.lng) L.marker([v.lat,v.lng]).addTo(map);
+  },200);
+}
+function cerrarModal(){
+  document.getElementById("modal").style.display="none";
+}
+
+/* ===== DATA ===== */
+function cargar(){
+  fetch("/api/carros")
+    .then(r=>r.json())
+    .then(data=>{
+      for(const g in grupos) grupos[g].items=[];
+
+      data.filter(v=>!esOtroCuerpo(v.nombre))
+          .forEach(v=>{
+            grupos[grupoPorNombre(v.nombre)].items.push(v);
+          });
+
+      renderResumen();
+      render();
+    });
+}
+
+cargar();
+setInterval(cargar,300000);
+</script>
+
+</body>
+</html>

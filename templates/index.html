@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GPS Vehículos</title>
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <link rel="stylesheet" href="/static/styles.css"/>
+</head>
+<body class="panel-hidden">
+  <header class="topbar">
+    <div class="title">GPS Vehículos</div>
+
+    <div class="controls">
+      <label>
+        Vehículos (multi)
+        <select id="vehicleSelect" multiple size="6"></select>
+      </label>
+
+      <label>
+        Puntos (1-100)
+        <input id="trackLimit" type="number" min="1" max="100" value="100" step="1" />
+      </label>
+
+      <label class="inline">
+        <input id="autoRefresh" type="checkbox" checked />
+        En vivo (10s)
+      </label>
+
+      <div class="btnRow">
+        <button id="refreshBtn">Actualizar</button>
+        <button id="fitBtn">Centrar</button>
+        <button id="togglePanelBtn" class="primary">Panel</button>
+      </div>
+
+      <div class="hint">
+        - Sin selección: muestra última posición de todos.<br/>
+        - Con selección: solo aparecen los seleccionados + su track.
+      </div>
+    </div>
+  </header>
+
+  <main class="layout">
+    <div id="mapWrap">
+      <div id="map"></div>
+      <div class="status" id="status"></div>
+
+      <!-- Overlay solo móvil cuando panel está abierto -->
+      <div id="overlay" class="overlay" aria-hidden="true"></div>
+    </div>
+
+    <aside class="panel" id="panel">
+      <div class="panelHeader">
+        <div class="panel-title">Track / Últimas ubicaciones</div>
+        <button id="closePanelBtn" class="closeBtn" aria-label="Cerrar panel">✕</button>
+      </div>
+
+      <div id="trackInfo" class="panel-subtitle">
+        Selecciona uno o más vehículos para ver sus tracks.
+      </div>
+
+      <div class="tableWrap">
+        <table id="trackTable">
+          <thead>
+            <tr>
+              <th>Vehículo</th>
+              <th>#</th>
+              <th>Hora</th>
+              <th>Lat</th>
+              <th>Lon</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </aside>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="/static/app.js"></script>
+</body>
+</html>

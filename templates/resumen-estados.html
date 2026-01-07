@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Resumen por Tipo de Carro</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+body{
+  font-family:system-ui,Arial;
+  margin:16px;
+  background:#f5f6fa;
+}
+
+.nav{
+  display:flex;
+  gap:10px;
+  margin-bottom:20px;
+}
+.nav button{
+  padding:8px 14px;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+  font-weight:600;
+}
+.btn-home{background:#34495e;color:#fff;}
+.btn-dashboard{background:#27ae60;color:#fff;}
+
+h2{margin-bottom:16px;}
+
+.resumen{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.row{
+  display:grid;
+  grid-template-columns:1.6fr repeat(4,1fr);
+  gap:8px;
+  background:#ecf0f1;
+  padding:12px;
+  border-radius:12px;
+  font-weight:700;
+  align-items:center;
+}
+
+.header{
+  background:#dcdde1;
+}
+
+.row span{
+  text-align:center;
+  padding:6px 4px;
+  border-radius:8px;
+  font-size:14px;
+}
+
+.green{background:#2ecc71;color:#fff;}
+.blue{background:#3498db;color:#fff;}
+.yellow{background:#f1c40f;color:#000;}
+.red{background:#e74c3c;color:#fff;}
+</style>
+</head>
+
+<body>
+
+<!-- NAV -->
+<div class="nav">
+  <button class="btn-home" onclick="location.href='/'">🏠 Service</button>
+  <button class="btn-dashboard" onclick="location.href='/dashboard'">🚒 Dashboard</button>
+</div>
+
+<h2>📊 Resumen por Tipo de Carro</h2>
+
+<div id="resumen" class="resumen"></div>
+
+<script>
+/* ===== CONFIG ===== */
+const TIPOS = {
+  B:"🚒 Bomba",
+  Q:"🪜 Porta Escala",
+  R:"🚑 Rescate",
+  M:"🔧 Mecánica",
+  Z:"🚛 Cisterna",
+  H:"☢️ Haz-Mat"
+};
+
+const OTROS_CUERPOS = ["Ñ","QN","CB","BOM","RX"];
+
+/* ===== UTILS ===== */
+function esOtroCuerpo(nombre){
+  const p = nombre.trim().split(" ");
+  return p.length > 1 && OTROS_CUERPOS.includes(p[p.length-1]);
+}
+
+/* ===== TIPO ===== */
+function tipoPorNombre(nombre){
+  const n = nombre.toUpperCase();
+  if (n.startsWith("ST")) return "Z";
+  if (n.startsWith("B")) return "B";
+  if (n.startsWith("Q")) return "Q";
+  if (n.startsWith("R")) return "R";
+  if (n.startsWith("M")) return "M";
+  if (n.startsWith("Z")) return "Z";
+  if (n.startsWith("H")) return "H";
+  return null;
+}
+
+/* ===== RESUMEN ===== */
+function cargarResumen(){
+  fetch("/api/carros")
+    .then(r=>r.json())
+    .then(data=>{
+      const resumen = {};
+      for(const k in TIPOS){
+        resumen[k]={green:0,blue:0,yellow:0,red:0};
+      }
+
+      data
+        .filter(v => !esOtroCuerpo(v.nombre)) // 👈 excluir otros cuerpos
+        .forEach(v=>{
+          const t = tipoPorNombre(v.nombre);
+          if(t && resumen[t][v.color]!==undefined){
+            resumen[t][v.color]++;
+          }
+        });
+
+      renderResumen(resumen);
+    })
+    .catch(()=>{
+      document.getElementById("resumen").innerHTML="⚠️ Error cargando datos";
+    });
+}
+
+/* ===== RENDER ===== */
+function renderResumen(data){
+  const cont = document.getElementById("resumen");
+
+  cont.innerHTML = `
+    <div class="row header">
+      <div>Tipo</div>
+      <div>En servicio</div>
+      <div>En llamado</div>
+      <div>Disponible</div>
+      <div>Fuera de servicio</div>
+    </div>
+  `;
+
+  for(const k in data){
+    const r = data[k];
+    cont.innerHTML += `
+      <div class="row">
+        <div>${TIPOS[k]}</div>
+        <span class="green">${r.green}</span>
+        <span class="blue">${r.blue}</span>
+        <span class="yellow">${r.yellow}</span>
+        <span class="red">${r.red}</span>
+      </div>
+    `;
+  }
+}
+
+cargarResumen();
+setInterval(cargarResumen,300000); // 5 minutos
+</script>
+
+</body>
+</html>
