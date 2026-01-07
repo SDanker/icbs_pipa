@@ -23,6 +23,9 @@ h2{margin-bottom:12px;}
 .yellow{background:#f1c40f;color:#000}
 .blue{background:#3498db}
 .red{background:#e74c3c}
+.status{margin:8px 0 16px;font-weight:600;}
+.status.ok{color:#27ae60;}
+.status.error{color:#c0392b;}
 
 .grid{
   display:grid;
@@ -77,6 +80,8 @@ h2{margin-bottom:12px;}
   <div class="legend-item"><div class="legend-color red"></div> Fuera de servicio</div>
 </div>
 
+<div id="status" class="status">⏳ Cargando datos...</div>
+
 <div id="grid" class="grid"></div>
 
 <script>
@@ -95,21 +100,38 @@ function parseCSV(text){
   const lines = text.trim().split("\n").slice(1);
   const map = {};
   lines.forEach(l=>{
-    const [carro, cuartel] = l.split(",");
-    map[carro.trim()] = cuartel.trim();
+    const [idIcbs, cuartel] = l.split(",");
+    map[idIcbs.trim()] = cuartel.trim();
   });
   return map;
 }
 
 /* ================= MAIN ================= */
 async function cargar(){
-  const [carros, csv] = await Promise.all([
-    fetch("/api/carros").then(r=>r.json()),
-    fetch("/data/cuarteles.csv").then(r=>r.text())
+  const status = document.getElementById("status");
+  try{
+    const [carrosResp, csvResp] = await Promise.all([
+      fetch("/api/carros"),
+      fetch("/data/cuarteles.csv")
+    ]);
 
-  ]);
+    if(!carrosResp.ok){
+      throw new Error("No se pudo cargar /api/carros");
+    }
+    if(!csvResp.ok){
+      throw new Error("No se pudo cargar /data/cuarteles.csv");
+    }
 
-  const mapaCuarteles = parseCSV(csv);
+    const [carros, csv] = await Promise.all([
+      carrosResp.json(),
+      csvResp.text()
+    ]);
+
+    const mapaCuarteles = parseCSV(csv);
+    const csvCount = Object.keys(mapaCuarteles).length;
+    if(csvCount === 0){
+      throw new Error("CSV vacío o sin registros");
+    }
 
   // Inicializar columnas
   const cols = {};
@@ -120,12 +142,19 @@ async function cargar(){
   carros
     .filter(v => !esOtroCuerpo(v.nombre))
     .forEach(v=>{
-      const c = mapaCuarteles[v.nombre];
+      const c = mapaCuarteles[v.id_icbs];
       if(!c || !cols[c]) return;
       cols[c].push(v);
     });
 
-  render(cols);
+    render(cols);
+    status.className = "status ok";
+    status.innerText = `✅ CSV leído: ${csvCount} asignaciones`;
+  }catch(error){
+    console.error("Error cargando datos:", error);
+    status.className = "status error";
+    status.innerText = `⚠️ Error cargando datos: ${error.message}`;
+  }
 }
 
 /* ================= RENDER ================= */
