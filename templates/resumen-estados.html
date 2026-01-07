@@ -6,26 +6,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
-body{
-  font-family:system-ui,Arial;
-  margin:16px;
-  background:#f5f6fa;
-}
-
-.nav{
-  display:flex;
-  gap:10px;
-  margin-bottom:20px;
-}
-.nav button{
-  padding:8px 14px;
-  border:none;
-  border-radius:8px;
-  cursor:pointer;
-  font-weight:600;
-}
+body{font-family:system-ui,Arial;margin:16px;}
+.nav{display:flex;gap:10px;margin-bottom:16px;}
+.nav button{padding:8px 14px;border:none;border-radius:8px;cursor:pointer;font-weight:600;}
 .btn-home{background:#34495e;color:#fff;}
 .btn-dashboard{background:#27ae60;color:#fff;}
+.btn-switch{background:#8e44ad;color:#fff;}
+.btn-cuartel{background:#3498db;color:#fff;}
 
 h2{margin-bottom:16px;}
 
@@ -35,16 +22,7 @@ h2{margin-bottom:16px;}
   gap:10px;
 }
 
-.row{
-  display:grid;
-  grid-template-columns:1.6fr repeat(4,1fr);
-  gap:8px;
-  background:#ecf0f1;
-  padding:12px;
-  border-radius:12px;
-  font-weight:700;
-  align-items:center;
-}
+.row{display:grid;grid-template-columns:1.6fr repeat(4,1fr);gap:8px;background:#ecf0f1;padding:12px;border-radius:12px;font-weight:700;align-items:center;}
 
 .header{
   background:#dcdde1;
@@ -70,6 +48,8 @@ h2{margin-bottom:16px;}
 <div class="nav">
   <button class="btn-home" onclick="location.href='/'">🏠 Service</button>
   <button class="btn-dashboard" onclick="location.href='/dashboard'">🚒 Dashboard</button>
+  <button class="btn-switch" onclick="location.href='/otros-cuerpos'">🚑 Otros Cuerpos</button>
+  <button class="btn-cuartel" onclick="location.href='/dashboard/cuartel'">🏢 Cuarteles</button>
 </div>
 
 <h2>📊 Resumen por Tipo de Carro</h2>
