@@ -1,7 +1,10 @@
+import os
+
 from flask import Flask, render_template, request, jsonify, send_from_directory
 import pyodbc
 
 app = Flask(__name__)
+DATA_DIR = os.path.join(app.root_path, "data")
 
 # =========================
 # CONFIGURACIÓN BD
@@ -95,7 +98,7 @@ def cuartel():
 # =========================
 @app.route("/data/<path:filename>")
 def data_files(filename):
-    return send_from_directory("/root/14/iCBS_web/data", filename)
+    return send_from_directory(DATA_DIR, filename)
 
 
 # =========================
